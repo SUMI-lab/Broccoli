@@ -1,4 +1,4 @@
-# Broccoli
+# Broccoli <td align="center" valign="top" width="33.33%"><img src="https://github.com/SUMI-lab/Broccoli/blob/main/broccoli-3d.png?raw=true" width="100px;"/></td>
 
 This repository contains code for the paper _In Search of Trees: Decision-Tree Policy Synthesis for Black-Box Systems via Search_ by Emir Demirović, Christian Schilling, Anna Lukina.
 
