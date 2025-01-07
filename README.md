@@ -9,7 +9,7 @@ Please, follow [the manual](https://doc.rust-lang.org/book/ch01-01-installation.
 
 ## How to reproduce the experiments
 
-[src/broccoli/environments](https://github.com/SUMI-lab/Broccoli-dev/tree/main/src/broccoli/environments) contains three classic control benchmarks from [Gymnaisum](https://gymnasium.farama.org/environments/classic_control/) translated into Rust. See [notes about experiments](#notes-about-experiments) for instructions per benchmark.
+[src/broccoli/environments](https://github.com/SUMI-lab/Broccoli-dev/tree/main/src/broccoli/environments) contains three classic control benchmarks from [Gymnasium](https://gymnasium.farama.org/environments/classic_control/) translated into Rust. See [notes about experiments](#notes-about-experiments) for instructions per benchmark.
 
 ## Contributors
 
