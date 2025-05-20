@@ -1,6 +1,17 @@
 # Broccoli <td align="center" valign="top" width="33.33%"><img src="https://github.com/SUMI-lab/Broccoli/blob/main/sumi-broccoli-green-white.png?raw=true" width="100px;"/></td>
 
-This repository contains code for the paper _In Search of Trees: Decision-Tree Policy Synthesis for Black-Box Systems via Search_ by Emir Demirović, Christian Schilling, Anna Lukina.
+This repository contains code for the paper _In Search of Trees: Decision-Tree Policy Synthesis for Black-Box Systems via Search_ by Emir Demirović, Christian Schilling, Anna Lukina, published at AAAI 2025. To cite the work, you can use:
+```
+@inproceedings{demirovic2025search,
+  title={In Search of Trees: Decision-Tree Policy Synthesis for Black-Box Systems via Search},
+  author={Demirovi{\'c}, Emir and Schilling, Christian and Lukina, Anna},
+  booktitle={Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume={39},
+  number={26},
+  pages={27250--27257},
+  year={2025}
+}
+```
 
 ## How to Install
 
