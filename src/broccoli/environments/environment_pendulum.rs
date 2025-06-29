@@ -6,7 +6,7 @@ use super::environment::{Environment, EnvironmentInfo, Interval};
 
 pub struct EnvironmentPendulum {
     angle: f64, //in radians
-    angluar_velocity: f64,
+    angular_velocity: f64,
 
     gravity: f64,
     max_velocity: f64,
@@ -19,7 +19,7 @@ impl EnvironmentPendulum {
     pub fn new() -> EnvironmentPendulum {
         EnvironmentPendulum {
             angle: 0.0,
-            angluar_velocity: 0.0,
+            angular_velocity: 0.0,
             gravity: 10.0,
             max_velocity: 8.0,
             m: 1.0,
@@ -45,7 +45,7 @@ impl Environment for EnvironmentPendulum {
         /*let costs = f64::powi(EnvironmentPendulum::normalise_angle(self.angle), 2)
         + 0.1 * f64::powi(self.angluar_velocity, 2)
         + 0.001 * f64::powi(u, 2);*/
-        let new_angluar_velocity = self.angluar_velocity
+        let new_angluar_velocity = self.angular_velocity
             + (3.0 * self.gravity / (2.0 * self.l) * self.angle.sin()
                 + 3.0 / (self.m * f64::powi(self.l, 2)) * u)
                 * self.time_unit;
@@ -60,7 +60,7 @@ impl Environment for EnvironmentPendulum {
             (3.0 / (self.m * f64::powi(self.l, 2)) * u) * self.time_unit
         );*/
 
-        self.angluar_velocity = new_angluar_velocity.clamp(-self.max_velocity, self.max_velocity);
+        self.angular_velocity = new_angluar_velocity.clamp(-self.max_velocity, self.max_velocity);
 
         //println!("dot: {}", self.angluar_velocity);
 
@@ -77,19 +77,19 @@ impl Environment for EnvironmentPendulum {
 
     //possible issue: openAI gym uses f32, and not f64, so there may be a discrepancy
     fn observe_state(&self) -> Vec<f64> {
-        vec![self.angle, self.angluar_velocity]
+        vec![self.angle, self.angular_velocity]
     }
 
     fn is_at_terminal_state(&self) -> bool {
         //the angle is (almost) upright
         //broccoli_greater_or_equal(-0.8, self.angle) || broccoli_greater_or_equal(self.angle, 0.8)
         brocolli_within_range(self.angle, -0.1, 0.1)
-            && brocolli_within_range(self.angluar_velocity, -0.1, 0.1)
+            && brocolli_within_range(self.angular_velocity, -0.1, 0.1)
     }
 
     fn reset(&mut self, initial_state: &[f64]) {
         self.angle = initial_state[0];
-        self.angluar_velocity = initial_state[1];
+        self.angular_velocity = initial_state[1];
     }
 
     fn environment_info(&self) -> EnvironmentInfo {
@@ -124,7 +124,7 @@ mod tests {
             "{} {} {}",
             env.angle.cos(),
             env.angle.sin(),
-            env.angluar_velocity
+            env.angular_velocity
         );
         println!("{}", env.angle);
         for _i in 0..11 {
