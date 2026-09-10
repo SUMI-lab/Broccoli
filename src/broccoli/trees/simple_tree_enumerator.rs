@@ -198,14 +198,9 @@ mod tests {
         let mut enumerator = SimpleTreeEnumerator::new(2, 3, 2, vec![2], false);
 
         let mut counter = 0;
-        loop {
-            match enumerator.next_tree() {
-                Ok(tree) => {
-                    println!("{}: {:?}", counter, tree);
-                    counter += 1;
-                }
-                Err(_) => break,
-            }
+        while let Ok(tree) = enumerator.next_tree() {
+            println!("{}: {:?}", counter, tree);
+            counter += 1;
         }
 
         /*//depth 0 case

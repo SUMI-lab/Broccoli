@@ -385,7 +385,7 @@ impl SimpleTreeFromTemplateEnumerator {
 
     pub fn apply_next_increment_suggestions(&mut self, next_increment_suggestions: &[Option<u32>]) {
         assert!(self.use_next_increment_suggestions);
-        assert!(self.state.len() == next_increment_suggestions.len());
+        assert_eq!(self.state.len(), next_increment_suggestions.len());
 
         #[allow(clippy::needless_range_loop)]
         for i in 0..self.state.len() {

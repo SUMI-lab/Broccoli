@@ -6,20 +6,16 @@ use crate::broccoli::{
 
 use super::evaluator::Evaluator;
 
-pub struct EnvironmentEvaluatorMaximiseIterations<E: Environment> {
-    environment: E,
+pub struct EnvironmentEvaluatorMaximiseIterations<'a, E: Environment + ?Sized> {
+    environment: &'a mut E,
     initial_states: Vec<Vec<f64>>,
     max_num_states: u32,
     best_score: Option<u32>,
     num_environment_calls: usize,
 }
 
-impl<E: Environment> EnvironmentEvaluatorMaximiseIterations<E> {
-    pub fn new(
-        environment: E,
-        initial_states: &[Vec<f64>],
-        max_num_states: u32,
-    ) -> EnvironmentEvaluatorMaximiseIterations<E> {
+impl<'a, E: Environment + ?Sized> EnvironmentEvaluatorMaximiseIterations<'a, E> {
+    pub fn new(environment: &'a mut E, initial_states: &[Vec<f64>], max_num_states: u32) -> Self {
         EnvironmentEvaluatorMaximiseIterations {
             environment,
             initial_states: initial_states.to_vec(),
@@ -30,8 +26,8 @@ impl<E: Environment> EnvironmentEvaluatorMaximiseIterations<E> {
     }
 }
 
-impl<E: Environment> Evaluator for EnvironmentEvaluatorMaximiseIterations<E> {
-    fn environment_info(&self) -> EnvironmentInfo {
+impl<'a, E: Environment + ?Sized> Evaluator for EnvironmentEvaluatorMaximiseIterations<'a, E> {
+    fn environment_info(&self) -> &EnvironmentInfo {
         self.environment.environment_info()
     }
 
@@ -47,7 +43,7 @@ impl<E: Environment> Evaluator for EnvironmentEvaluatorMaximiseIterations<E> {
         for initial_state in &self.initial_states {
             let mut controller = decision_tree.clone();
             let num_iterations = run_simulation(
-                &mut self.environment,
+                &mut *self.environment,
                 initial_state,
                 &mut controller,
                 self.max_num_states,

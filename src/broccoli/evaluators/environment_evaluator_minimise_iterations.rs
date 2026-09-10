@@ -8,19 +8,15 @@ use crate::broccoli::{
 
 use super::evaluator::Evaluator;
 
-pub struct EnvironmentEvaluatorMinimiseIterations<E: Environment> {
-    environment: E,
+pub struct EnvironmentEvaluatorMinimiseIterations<'a, E: Environment + ?Sized> {
+    environment: &'a mut E,
     initial_states: Vec<Vec<f64>>,
     max_num_states: u32,
     num_environment_calls: usize,
 }
 
-impl<E: Environment> EnvironmentEvaluatorMinimiseIterations<E> {
-    pub fn new(
-        environment: E,
-        initial_states: &[Vec<f64>],
-        max_num_states: u32,
-    ) -> EnvironmentEvaluatorMinimiseIterations<E> {
+impl<'a, E: Environment + ?Sized> EnvironmentEvaluatorMinimiseIterations<'a, E> {
+    pub fn new(environment: &'a mut E, initial_states: &[Vec<f64>], max_num_states: u32) -> Self {
         EnvironmentEvaluatorMinimiseIterations {
             environment,
             initial_states: initial_states.to_vec(),
@@ -30,8 +26,8 @@ impl<E: Environment> EnvironmentEvaluatorMinimiseIterations<E> {
     }
 }
 
-impl<E: Environment> Evaluator for EnvironmentEvaluatorMinimiseIterations<E> {
-    fn environment_info(&self) -> EnvironmentInfo {
+impl<'a, E: Environment + ?Sized> Evaluator for EnvironmentEvaluatorMinimiseIterations<'a, E> {
+    fn environment_info(&self) -> &EnvironmentInfo {
         self.environment.environment_info()
     }
 
@@ -41,7 +37,7 @@ impl<E: Environment> Evaluator for EnvironmentEvaluatorMinimiseIterations<E> {
         for initial_state in &self.initial_states {
             let mut controller = decision_tree.clone();
             let result = run_simulation_until_terminate_state(
-                &mut self.environment,
+                &mut *self.environment,
                 initial_state,
                 &mut controller,
                 self.max_num_states,

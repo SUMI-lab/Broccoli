@@ -302,7 +302,7 @@ mod tests {
                 Err(_) => break,
             }
         }
-        assert!(counter == 4);
+        assert_eq!(counter, 4);
     }
 
     #[test]
@@ -318,7 +318,7 @@ mod tests {
                 Err(_) => break,
             }
         }
-        assert!(counter == 6);
+        assert_eq!(counter, 6);
     }
 
     #[test]
@@ -330,6 +330,6 @@ mod tests {
     #[test]
     fn node_depth_computation_1() {
         let enumerator = TemplateEnumerator::new(2, 3);
-        assert!(enumerator.compute_node_depth(3) == 3);
+        assert_eq!(enumerator.compute_node_depth(3), 3);
     }
 }

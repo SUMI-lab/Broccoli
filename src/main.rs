@@ -1,17 +1,13 @@
-use std::{fs::File, io::Write};
-
+use crate::broccoli::environments::environment::Environment;
+use crate::broccoli::environments::environment_cartpole::EnvironmentCartPole;
+use crate::broccoli::environments::environment_mountain_car::EnvironmentMountainCar;
+use crate::broccoli::environments::environment_pendulum::EnvironmentPendulum;
+use crate::broccoli::runners::cart_pole_runner::plot_cart_pole;
+use crate::broccoli::runners::mountain_car_runner::plot_mountain_car;
+use crate::broccoli::runners::pendulum_runner::plot_pendulum;
 use clap::Parser;
-
-use crate::broccoli::{
-    broccoli_helper_functions::extract_initial_states,
-    environments::environment::Interval,
-    runners::{
-        cart_pole_runner::run_cart_pole, mountain_car_runner::run_mountain_car,
-        pendulum_runner::run_pendulum,
-    },
-};
-
-use rand::{rngs::SmallRng, Rng, SeedableRng};
+use pyo3::prelude::PyAnyMethods;
+use std::{fs::File, io::Write, time::Duration};
 
 mod broccoli;
 
@@ -114,63 +110,7 @@ impl std::fmt::Display for CliArg<bool> {
 //  + also maybe cases where this is not logically implied, but based on simulation runs happens to be the case
 //add checks to ensure that increment is always increasing -> strange behaviour detected where thresholds bounce from 0.5, 0.7, and then 0.6
 
-fn get_environment_state_variable_ranges(environment_type: &EnvironmentType) -> Vec<Interval> {
-    match environment_type {
-        EnvironmentType::MountainCar => {
-            vec![
-                Interval {
-                    name: "Position".to_string(),
-                    min: -0.6,
-                    max: -0.4,
-                },
-                Interval {
-                    name: "Velocity".to_string(),
-                    min: 0.0,
-                    max: 0.0,
-                },
-            ]
-        }
-        EnvironmentType::CartPole => {
-            vec![
-                Interval {
-                    name: "Cart Position".to_string(),
-                    min: -0.05,
-                    max: 0.05,
-                },
-                Interval {
-                    name: "Cart Velocity".to_string(),
-                    min: -0.05,
-                    max: 0.05,
-                },
-                Interval {
-                    name: "Pole Angle".to_string(),
-                    min: -0.05,
-                    max: 0.05,
-                },
-                Interval {
-                    name: "Pole Velocity".to_string(),
-                    min: -0.05,
-                    max: 0.05,
-                },
-            ]
-        }
-        EnvironmentType::Pendulum => {
-            vec![
-                Interval {
-                    name: "Angle".to_string(),
-                    min: -0.8,
-                    max: -0.5,
-                },
-                Interval {
-                    name: "Angular Velocity".to_string(),
-                    min: -0.2,
-                    max: 0.2,
-                },
-            ]
-        }
-    }
-}
-
+#[allow(dead_code, reason = "Only used to regenerate checked-in scripts")]
 fn neurips_script_experiment1() {
     let mut script: String = String::new();
 
@@ -240,12 +180,13 @@ fn neurips_script_experiment1() {
         script += &format!("./broccoli.exe --env {name} --depth 2 --num-iters 10000 --predicate-increment 0.2 0.2 --NeurIPS {seed} 100 --predicate-reasoning 0 > exp1_multiple_{name}_{seed}_no.txt\n");
     }
 
-    file.write(script.as_bytes())
+    file.write_all(script.as_bytes())
         .expect("Writing as bytes failed?");
 
     panic!();
 }
 
+#[allow(dead_code, reason = "Only used to regenerate checked-in scripts")]
 fn neurips_script_experiment_scale_predicates() {
     let mut script: String = String::new();
 
@@ -348,12 +289,13 @@ fn neurips_script_experiment_scale_predicates() {
         }
     }
 
-    file.write(script.as_bytes())
+    file.write_all(script.as_bytes())
         .expect("Writing as bytes failed?");
 
     panic!();
 }
 
+#[allow(dead_code, reason = "Only used to regenerate checked-in scripts")]
 fn neurips_script_experiment_num_nodes() {
     let mut script: String = String::new();
 
@@ -400,7 +342,7 @@ fn neurips_script_experiment_num_nodes() {
         }
     }
 
-    file.write(script.as_bytes())
+    file.write_all(script.as_bytes())
         .expect("Writing as bytes failed?");
 
     panic!();
@@ -415,84 +357,44 @@ fn main() {
 
     let args = Args::parse();
 
+    let depth = args.depth;
+    let num_nodes = args.num_nodes;
+    let num_simulation_iterations = args.num_simulation_iterations;
+    let predicate_increments = args.predicate_increments;
+    let use_predicate_reasoning = args.use_predicate_reasoning.inner;
+    let neurips_parameters = args.neurips_parameters;
+    let initial_states_flattened = args.initial_states_flattened;
+
     println!("Depth: {}", args.depth);
 
-    let num_state_variables = match args.environment_type.inner {
-        EnvironmentType::MountainCar => 2,
-        EnvironmentType::CartPole => 4,
-        EnvironmentType::Pendulum => 2,
+    let environment: &mut dyn Environment = match args.environment_type.inner {
+        EnvironmentType::MountainCar => &mut EnvironmentMountainCar::new(),
+        EnvironmentType::CartPole => &mut EnvironmentCartPole::new(),
+        EnvironmentType::Pendulum => &mut EnvironmentPendulum::new(),
     };
 
-    let initial_states = if args.neurips_parameters.is_empty() {
-        extract_initial_states(&args.initial_states_flattened, num_state_variables)
-    } else {
-        assert!(
-            args.neurips_parameters.len() == 2,
-            "Expected two values for the NeurIPS experiments."
-        );
-        //depending on the environment, create a vector of state ranges
-        //  the initial states will be randomly sampled within these ranges
-        let state_variable_ranges =
-            get_environment_state_variable_ranges(&args.environment_type.inner);
-        let seed = args.neurips_parameters[0];
-        println!("Seed: {seed}");
-
-        let num_initial_states = args.neurips_parameters[1];
-        println!("Num initial states: {num_initial_states}");
-
-        let mut random_generator = SmallRng::seed_from_u64(seed);
-
-        let mut initial_states: Vec<Vec<f64>> = vec![];
-        for _i in 0..num_initial_states {
-            let mut state: Vec<f64> = vec![];
-            for variable_range in &state_variable_ranges {
-                let mut val = random_generator.gen_range(variable_range.min..=variable_range.max);
-
-                //rounding to two decimal places for simplicity
-                val *= 1000.0;
-                val = ((val as i64) as f64) / 1000.0;
-
-                state.push(val);
-            }
-            initial_states.push(state);
-        }
-        initial_states
-    };
-
-    if initial_states.len() <= 100 {
-        for state in initial_states.iter().enumerate() {
-            println!("State {}: {:?}", state.0, state.1);
-        }
-    }
+    let time_limit = Duration::MAX;
+    let (initial_states, b_output) = broccoli::broccoli::run_solver(
+        depth,
+        num_nodes,
+        num_simulation_iterations,
+        &predicate_increments,
+        use_predicate_reasoning,
+        neurips_parameters,
+        &initial_states_flattened,
+        environment,
+        time_limit,
+    );
 
     match args.environment_type.inner {
         EnvironmentType::MountainCar => {
-            run_mountain_car(
-                args.depth,
-                args.num_nodes,
-                args.num_simulation_iterations,
-                &initial_states,
-                &args.predicate_increments,
-                args.use_predicate_reasoning.inner,
-            );
+            plot_mountain_car(b_output, &initial_states);
         }
         EnvironmentType::CartPole => {
-            run_cart_pole(
-                args.depth,
-                args.num_nodes,
-                args.num_simulation_iterations,
-                &initial_states,
-                &args.predicate_increments,
-                args.use_predicate_reasoning.inner,
-            );
+            plot_cart_pole(b_output, &initial_states, num_simulation_iterations);
         }
-        EnvironmentType::Pendulum => run_pendulum(
-            args.depth,
-            args.num_nodes,
-            args.num_simulation_iterations,
-            &initial_states,
-            &args.predicate_increments,
-            args.use_predicate_reasoning.inner,
-        ),
+        EnvironmentType::Pendulum => {
+            plot_pendulum(b_output, &initial_states);
+        }
     }
 }

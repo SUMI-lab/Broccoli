@@ -1,8 +1,7 @@
 use std::f64::consts::PI;
 
-use crate::broccoli::broccoli_helper_functions::brocolli_within_range;
-
 use super::environment::{Environment, EnvironmentInfo, Interval};
+use crate::broccoli::broccoli_helper_functions::brocolli_within_range;
 
 pub struct EnvironmentCartPole {
     //state
@@ -19,6 +18,8 @@ pub struct EnvironmentCartPole {
     pole_length: f64,
     force_magnitude: f64,
     time_unit: f64,
+
+    environment_info: EnvironmentInfo,
 }
 
 impl EnvironmentCartPole {
@@ -45,11 +46,70 @@ impl EnvironmentCartPole {
             pole_length,
             force_magnitude,
             time_unit,
+
+            environment_info: {
+                let feature_ranges: Vec<Interval> = vec![
+                    Interval {
+                        name: "Cart Position".to_string(),
+                        min: -2.4,
+                        max: 2.4,
+                    },
+                    Interval {
+                        name: "Cart Velocity".to_string(),
+                        min: -1.0,
+                        max: 1.0,
+                    },
+                    Interval {
+                        name: "Pole Angle".to_string(),
+                        min: -0.418,
+                        max: 0.418,
+                    },
+                    Interval {
+                        name: "Pole Velocity".to_string(),
+                        min: -1.0,
+                        max: 1.0,
+                    },
+                ];
+                let start_ranges: Vec<Interval> = vec![
+                    Interval {
+                        name: "Cart Position".to_string(),
+                        min: -0.05,
+                        max: 0.05,
+                    },
+                    Interval {
+                        name: "Cart Velocity".to_string(),
+                        min: -0.05,
+                        max: 0.05,
+                    },
+                    Interval {
+                        name: "Pole Angle".to_string(),
+                        min: -0.05,
+                        max: 0.05,
+                    },
+                    Interval {
+                        name: "Pole Velocity".to_string(),
+                        min: -0.05,
+                        max: 0.05,
+                    },
+                ];
+                EnvironmentInfo::new(feature_ranges, start_ranges, 2)
+            },
         }
     }
 }
 
 impl Environment for EnvironmentCartPole {
+    fn name(&self) -> &str {
+        "Cartpole"
+    }
+
+    fn minimise(&self) -> bool {
+        false
+    }
+    fn rewards(&self) -> bool {
+        false
+    }
+
     //taken from https://github.com/openai/gym/blob/master/gym/envs/classic_control/cartpole.py
     fn apply_action(&mut self, action: usize) {
         let force = if action == 1 {
@@ -85,6 +145,10 @@ impl Environment for EnvironmentCartPole {
         ]
     }
 
+    fn get_reward(&self) -> f64 {
+        0.0
+    }
+
     fn is_at_terminal_state(&self) -> bool {
         let angle_constant = 12.0 * 2.0 * PI / 360.0;
         !(brocolli_within_range(self.cart_position, -2.4, 2.4)
@@ -98,30 +162,8 @@ impl Environment for EnvironmentCartPole {
         self.pole_velocity = initial_state[3];
     }
 
-    fn environment_info(&self) -> EnvironmentInfo {
-        let intervals: Vec<Interval> = vec![
-            Interval {
-                name: "Cart Position".to_string(),
-                min: -2.4,
-                max: 2.4,
-            },
-            Interval {
-                name: "Cart Velocity".to_string(),
-                min: -1.0,
-                max: 1.0,
-            },
-            Interval {
-                name: "Pole Angle".to_string(),
-                min: -0.418,
-                max: 0.418,
-            },
-            Interval {
-                name: "Pole Velocity".to_string(),
-                min: -1.0,
-                max: 1.0,
-            },
-        ];
-        EnvironmentInfo::new(intervals, 2)
+    fn environment_info(&self) -> &EnvironmentInfo {
+        &self.environment_info
     }
 }
 
@@ -135,7 +177,7 @@ mod tests {
     fn test() {
         let mut env = EnvironmentCartPole::new();
 
-        env.reset(&vec![0.0, 0.05, 0.05, 0.05]);
+        env.reset(&[0.0, 0.05, 0.05, 0.05]);
 
         println!("initial state: {:?}", env.observe_state());
         for i in 0..1 {

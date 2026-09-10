@@ -48,7 +48,7 @@ pub fn extract_initial_states(
         exit(1);
     }
 
-    if initial_states_flattened.len() % num_state_variables != 0 {
+    if !initial_states_flattened.len().is_multiple_of(num_state_variables) {
         println!("Error: initial states not properly specified.");
         println!(
             "\t{} values provided, but this is not a proper multiple of {} that is expected.",
@@ -116,10 +116,7 @@ pub fn broccoli_plot(
     y_name: &str,
     plot_name: &str,
 ) {
-    assert!(
-        x_values.len() == y_values.len(),
-        "Error: plotting issue, x and y vectors are not of same size."
-    );
+    assert_eq!(x_values.len(), y_values.len(), "Error: plotting issue, x and y vectors are not of same size.");
     assert!(
         !x_values.is_empty() && !y_values.is_empty(),
         "Error: plotting with empty arrays?"
@@ -244,7 +241,7 @@ mod tests {
     fn extract_states_1() {
         let values = [0.5, 1.0];
         let initial_states = extract_initial_states(&values, 1);
-        assert!(initial_states == [[0.5], [1.0]])
+        assert_eq!(initial_states, [[0.5], [1.0]])
     }
 
     #[test]
@@ -252,16 +249,16 @@ mod tests {
         let values = [0.5, 1.0, 10.0, 20.0];
 
         let initial_states = extract_initial_states(&values, 2);
-        assert!(initial_states == [[0.5, 1.0], [10.0, 20.0]]);
+        assert_eq!(initial_states, [[0.5, 1.0], [10.0, 20.0]]);
 
         let comparison: Vec<Vec<f64>> = values.chunks(2).map(|p| p.to_vec()).collect();
-        assert!(initial_states == comparison);
+        assert_eq!(initial_states, comparison);
     }
 
     #[test]
     fn extract_states_3() {
         let values = [0.5, 1.0, 10.0, 20.0, 100.0, 0.0];
         let initial_states = extract_initial_states(&values, 2);
-        assert!(initial_states == [[0.5, 1.0], [10.0, 20.0], [100.0, 0.0]]);
+        assert_eq!(initial_states, [[0.5, 1.0], [10.0, 20.0], [100.0, 0.0]]);
     }
 }

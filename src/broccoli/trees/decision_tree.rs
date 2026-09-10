@@ -1,14 +1,43 @@
-use std::fmt;
-
 use crate::broccoli::broccoli_helper_functions::{
     broccoli_equal, broccoli_greater_or_equal, left_child_id, right_child_id,
 };
+use pyo3::prelude::PyAnyMethods;
+use pyo3::types::{IntoPyDict, PyDict};
+use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyErr, Python};
+use std::collections::HashMap;
+use std::fmt;
 
 #[derive(Clone)]
 pub enum Node {
     Null,
     Leaf { action: usize },
     Predicate { feature_id: usize, threshold: f64 },
+}
+
+impl<'py> IntoPyObject<'py> for Node {
+    type Target = PyDict;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(match self {
+            Node::Null => PyDict::new(py),
+            Node::Leaf { action } => {
+                let map: HashMap<_, _> = HashMap::from_iter([("action", action)]);
+                map.into_py_dict(py)?
+            }
+            Node::Predicate {
+                feature_id,
+                threshold,
+            } => {
+                let map: HashMap<_, _> = HashMap::from_iter([
+                    ("feature_id", feature_id.into_py_any(py)?),
+                    ("threshold", threshold.into_py_any(py)?),
+                ]);
+                map.into_py_dict(py)?
+            }
+        })
+    }
 }
 
 impl Node {
@@ -186,7 +215,7 @@ impl DecisionTree {
     }
 
     pub fn merge_threshold_distances(&mut self, source: &DecisionTree) {
-        assert!(self.nodes.len() == source.nodes.len());
+        assert_eq!(self.nodes.len(), source.nodes.len());
         //todo check that it is the same tree
 
         for node_id in 0..self.nodes.len() {
@@ -201,8 +230,8 @@ impl DecisionTree {
     }
 
     pub fn num_predicate_nodes(&self) -> usize {
-        assert!(self.threshold_distance.len() == self.frequencies.len());
-        assert!(self.nodes.len() == self.frequencies.len());
+        assert_eq!(self.threshold_distance.len(), self.frequencies.len());
+        assert_eq!(self.nodes.len(), self.frequencies.len());
         self.nodes.iter().filter(|node| node.is_predicate()).count()
     }
 
@@ -222,7 +251,6 @@ impl fmt::Display for DecisionTree {
 
 #[cfg(test)]
 mod tests {
-
     use crate::broccoli::broccoli_helper_functions::broccoli_equal;
 
     use super::{DecisionTree, Node};

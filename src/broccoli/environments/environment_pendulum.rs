@@ -1,6 +1,5 @@
-use crate::broccoli::broccoli_helper_functions::brocolli_within_range;
-
 use super::environment::{Environment, EnvironmentInfo, Interval};
+use crate::broccoli::broccoli_helper_functions::brocolli_within_range;
 
 //taken from https://github.com/openai/gym/blob/master/gym/envs/classic_control/pendulum.py
 
@@ -13,18 +12,48 @@ pub struct EnvironmentPendulum {
     m: f64,
     l: f64,
     time_unit: f64,
+
+    environment_info: EnvironmentInfo,
 }
 
 impl EnvironmentPendulum {
     pub fn new() -> EnvironmentPendulum {
+        let max_velocity = 8.0;
         EnvironmentPendulum {
             angle: 0.0,
             angular_velocity: 0.0,
             gravity: 10.0,
-            max_velocity: 8.0,
+            max_velocity,
             m: 1.0,
             l: 1.0,
             time_unit: 0.05,
+            environment_info: {
+                let feature_ranges: Vec<Interval> = vec![
+                    Interval {
+                        name: "Angle".to_string(),
+                        min: -1.0,
+                        max: 1.0,
+                    },
+                    Interval {
+                        name: "Angular Velocity".to_string(),
+                        min: -max_velocity,
+                        max: max_velocity,
+                    },
+                ];
+                let start_ranges = vec![
+                    Interval {
+                        name: "Angle".to_string(),
+                        min: -0.8,
+                        max: -0.5,
+                    },
+                    Interval {
+                        name: "Angular Velocity".to_string(),
+                        min: -0.2,
+                        max: 0.2,
+                    },
+                ];
+                EnvironmentInfo::new(feature_ranges, start_ranges, 2)
+            },
         }
     }
     /*fn normalise_angle(a: f64) -> f64 {
@@ -34,6 +63,16 @@ impl EnvironmentPendulum {
 }
 
 impl Environment for EnvironmentPendulum {
+    fn name(&self) -> &str {
+        "Pendulum"
+    }
+    fn minimise(&self) -> bool {
+        true
+    }
+    fn rewards(&self) -> bool {
+        false
+    }
+
     fn apply_action(&mut self, action: usize) {
         let u: f64 = if action == 0 {
             -2.0
@@ -45,7 +84,7 @@ impl Environment for EnvironmentPendulum {
         /*let costs = f64::powi(EnvironmentPendulum::normalise_angle(self.angle), 2)
         + 0.1 * f64::powi(self.angluar_velocity, 2)
         + 0.001 * f64::powi(u, 2);*/
-        let new_angluar_velocity = self.angular_velocity
+        let new_angular_velocity = self.angular_velocity
             + (3.0 * self.gravity / (2.0 * self.l) * self.angle.sin()
                 + 3.0 / (self.m * f64::powi(self.l, 2)) * u)
                 * self.time_unit;
@@ -60,11 +99,11 @@ impl Environment for EnvironmentPendulum {
             (3.0 / (self.m * f64::powi(self.l, 2)) * u) * self.time_unit
         );*/
 
-        self.angular_velocity = new_angluar_velocity.clamp(-self.max_velocity, self.max_velocity);
+        self.angular_velocity = new_angular_velocity.clamp(-self.max_velocity, self.max_velocity);
 
         //println!("dot: {}", self.angluar_velocity);
 
-        self.angle += new_angluar_velocity * self.time_unit;
+        self.angle += new_angular_velocity * self.time_unit;
         /*println!("after");
         println!(
             "{} {} {}",
@@ -80,6 +119,10 @@ impl Environment for EnvironmentPendulum {
         vec![self.angle, self.angular_velocity]
     }
 
+    fn get_reward(&self) -> f64 {
+        0.0
+    }
+
     fn is_at_terminal_state(&self) -> bool {
         //the angle is (almost) upright
         //broccoli_greater_or_equal(-0.8, self.angle) || broccoli_greater_or_equal(self.angle, 0.8)
@@ -92,20 +135,8 @@ impl Environment for EnvironmentPendulum {
         self.angular_velocity = initial_state[1];
     }
 
-    fn environment_info(&self) -> EnvironmentInfo {
-        let intervals: Vec<Interval> = vec![
-            Interval {
-                name: "Angle".to_string(),
-                min: -1.0,
-                max: 1.0,
-            },
-            Interval {
-                name: "Angular Velocity".to_string(),
-                min: -self.max_velocity,
-                max: self.max_velocity,
-            },
-        ];
-        EnvironmentInfo::new(intervals, 2)
+    fn environment_info(&self) -> &EnvironmentInfo {
+        &self.environment_info
     }
 }
 

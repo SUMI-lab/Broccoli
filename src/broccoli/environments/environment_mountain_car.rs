@@ -4,6 +4,8 @@ pub struct EnvironmentMountainCar {
     state: Vec<f64>, //[0] is the position, [1] is the velocity
     force: f64,
     gravity: f64,
+
+    environment_info: EnvironmentInfo,
 }
 
 impl EnvironmentMountainCar {
@@ -12,6 +14,34 @@ impl EnvironmentMountainCar {
             state: vec![0.0, 0.0],
             force: 0.001,
             gravity: 0.0025,
+
+            environment_info: {
+                let feature_ranges: Vec<Interval> = vec![
+                    Interval {
+                        name: "Position".to_string(),
+                        min: -1.2,
+                        max: 0.6,
+                    },
+                    Interval {
+                        name: "Velocity".to_string(),
+                        min: -0.07,
+                        max: 0.07,
+                    },
+                ];
+                let start_ranges = vec![
+                    Interval {
+                        name: "Position".to_string(),
+                        min: -0.6,
+                        max: -0.4,
+                    },
+                    Interval {
+                        name: "Velocity".to_string(),
+                        min: 0.0,
+                        max: 0.0,
+                    },
+                ];
+                EnvironmentInfo::new(feature_ranges, start_ranges, 2)
+            },
         }
     }
 
@@ -27,6 +57,17 @@ impl EnvironmentMountainCar {
 }
 
 impl Environment for EnvironmentMountainCar {
+    fn name(&self) -> &str {
+        "MountainCar"
+    }
+
+    fn minimise(&self) -> bool {
+        true
+    }
+    fn rewards(&self) -> bool {
+        false
+    }
+
     fn apply_action(&mut self, action: usize) {
         let velocity_change: f64 = self.compute_velocity_change(action);
 
@@ -49,6 +90,10 @@ impl Environment for EnvironmentMountainCar {
         self.state.clone()
     }
 
+    fn get_reward(&self) -> f64 {
+        0.0
+    }
+
     fn is_at_terminal_state(&self) -> bool {
         self.state[0] >= 0.5
     }
@@ -57,20 +102,8 @@ impl Environment for EnvironmentMountainCar {
         self.state = initial_state.to_vec();
     }
 
-    fn environment_info(&self) -> EnvironmentInfo {
-        let intervals: Vec<Interval> = vec![
-            Interval {
-                name: "Position".to_string(),
-                min: -1.2,
-                max: 0.6,
-            },
-            Interval {
-                name: "Velocity".to_string(),
-                min: -0.07,
-                max: 0.07,
-            },
-        ];
-        EnvironmentInfo::new(intervals, 2)
+    fn environment_info(&self) -> &EnvironmentInfo {
+        &self.environment_info
     }
 }
 

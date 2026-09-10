@@ -1,30 +1,73 @@
+use crate::broccoli::evaluators::environment_evaluator_maximise_iterations::EnvironmentEvaluatorMaximiseIterations;
+use crate::broccoli::evaluators::environment_evaluator_minimise_iterations::EnvironmentEvaluatorMinimiseIterations;
+use crate::broccoli::evaluators::environment_evaluator_maximise_return::EnvironmentEvaluatorMaximiseReturn;
+use crate::broccoli::evaluators::evaluator::Evaluator;
 use crate::broccoli::trees::decision_tree::DecisionTree;
+use pyo3::FromPyObject;
 
 pub trait Environment {
+    fn name(&self) -> &str;
+    fn minimise(&self) -> bool;
+    fn rewards(&self) -> bool;
     fn apply_action(&mut self, action: usize);
     fn observe_state(&self) -> Vec<f64>;
+    fn get_reward(&self) -> f64;
     fn is_at_terminal_state(&self) -> bool;
     fn reset(&mut self, initial_state: &[f64]);
-    fn environment_info(&self) -> EnvironmentInfo;
+    fn environment_info(&self) -> &EnvironmentInfo;
+    fn evaluator<'a>(
+        &'a mut self,
+        initial_states: &[Vec<f64>],
+        max_num_states: u32,
+    ) -> Box<dyn Evaluator + 'a> {
+        if self.minimise() {
+            Box::new(EnvironmentEvaluatorMinimiseIterations::new(
+                self,
+                initial_states,
+                max_num_states,
+            ))
+        } else {
+            if self.rewards() {
+                Box::new(EnvironmentEvaluatorMaximiseReturn::new(
+                    self,
+                    initial_states,
+                    max_num_states,
+                ))
+            } else {
+                Box::new(EnvironmentEvaluatorMaximiseIterations::new(
+                    self,
+                    initial_states,
+                    max_num_states,
+                ))
+            }
+        }
+    }
 }
 
-#[derive(Clone)]
+#[derive(Clone, FromPyObject)]
 pub struct EnvironmentInfo {
-    //for each state variable, max and min value it can take
-    feature_ranges: Vec<Interval>,
-    num_actions: usize,
+    // for each state variable, max and min value it can take
+    pub feature_ranges: Vec<Interval>,
+    // for each state variable, max and min value at the start
+    pub start_ranges: Vec<Interval>,
+    pub num_actions: usize,
 }
 
 impl EnvironmentInfo {
-    pub fn new(ranges: Vec<Interval>, num_actions: usize) -> EnvironmentInfo {
+    pub fn new(
+        feature_ranges: Vec<Interval>,
+        start_ranges: Vec<Interval>,
+        num_actions: usize,
+    ) -> EnvironmentInfo {
         EnvironmentInfo {
-            feature_ranges: ranges,
+            feature_ranges,
+            start_ranges,
             num_actions,
         }
     }
 
-    pub fn feature_name(&self, feature_index: usize) -> String {
-        self.feature_ranges[feature_index].name.clone()
+    pub fn feature_name(&self, feature_index: usize) -> &str {
+        &self.feature_ranges[feature_index].name
     }
 
     pub fn num_actions(&self) -> usize {
@@ -40,8 +83,9 @@ impl EnvironmentInfo {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, FromPyObject)]
 pub struct Interval {
+    /// Name of the feature. Only used in plotting
     pub name: String,
     pub min: f64,
     pub max: f64,
@@ -53,7 +97,7 @@ impl Interval {
     }
 }
 
-pub fn run_simulation_until_terminate_state<E: Environment>(
+pub fn run_simulation_until_terminate_state<E: Environment + ?Sized>(
     environment: &mut E,
     initial_state: &[f64],
     controller: &mut DecisionTree,
@@ -79,7 +123,7 @@ pub fn run_simulation_until_terminate_state<E: Environment>(
     Err(())
 }
 
-pub fn run_simulation<E: Environment>(
+pub fn run_simulation<E: Environment + ?Sized>(
     environment: &mut E,
     initial_state: &[f64],
     controller: &mut DecisionTree,
@@ -103,6 +147,35 @@ pub fn run_simulation<E: Environment>(
         }
     }
     max_num_states
+}
+
+pub fn run_simulation_with_rewards<E: Environment + ?Sized>(
+    environment: &mut E,
+    initial_state: &[f64],
+    controller: &mut DecisionTree,
+    max_num_states: u32,
+) -> f64 {
+    assert!(max_num_states >= 1);
+
+    environment.reset(initial_state);
+
+    if environment.is_at_terminal_state() {
+        return 0.0;
+    }
+
+    let mut total_return = 0.0;
+    for i in 0..(max_num_states - 1) {
+        let state = environment.observe_state();
+        let action = controller.get_action(&state);
+        environment.apply_action(action);
+
+        total_return += environment.get_reward();
+
+        if environment.is_at_terminal_state() {
+            break;
+        }
+    }
+    return total_return
 }
 
 pub fn run_successful_simulation_with_trace<E: Environment>(
